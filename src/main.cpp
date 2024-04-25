@@ -1,11 +1,13 @@
+#define DOCTEST_CONFIG_IMPLEMENT
+#define ANKERL_NANOBENCH_IMPLEMENT
 #include <iomanip>
 #include <iostream>
 
-#include "bidirectional_dijkstra.h"
-#include "dijkstra.h"
-#include "utils.h"
+#include "dijkstra/bidirectional_dijkstra.h"
+#include "dijkstra/dijkstra.h"
+#include "dijkstra/utils.h"
 
-int main() {
+void get_result() {
     // spdlog::set_level(spdlog::level::debug);
     {
         Dijkstra<int> d(6);
@@ -76,4 +78,17 @@ int main() {
         auto short_paths = d.dijkstra(0);
         print_shortest_path(short_paths);
     }
+}
+
+int main(int argc, char **argv) {
+    doctest::Context context;
+    context.applyCommandLine(argc, argv);
+    int res = context.run();  // run doctest
+    // important - query flags (and --exit) rely on the user doing this
+    if (context.shouldExit()) {
+        // propagate the result of the tests
+        return res;
+    }
+
+    get_result();
 }

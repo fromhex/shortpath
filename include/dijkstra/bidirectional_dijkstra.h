@@ -1,11 +1,13 @@
 #ifndef PATH_BIDIJKSTRA_H
 #define PATH_BIDIJKSTRA_H
+#include <doctest/doctest.h>
+#include <nanobench.h>
+#include <spdlog/spdlog.h>
+
 #include <algorithm>
 #include <queue>
 #include <set>
 #include <vector>
-
-#include "spdlog/spdlog.h"
 
 template <typename T>
 struct BiDirDijkstra {
@@ -146,7 +148,7 @@ struct BiDirDijkstra {
 
     T shortest_dist(int s, int t) {
         if (!check(s) || !check(t)) return T(INF);                                   // 检查越界
-        if (s == t) return T(0);                                         // 起点和终点相同
+        if (s == t) return T(0);                                                     // 起点和终点相同
         std::vector<std::priority_queue<E, std::vector<E>, std::greater<E>>> pq(2);  // 正向和反向优先队列
         std::vector<std::vector<T>> dist(2, std::vector<T>(n, T(INF)));  // 记录正向和反向最短路径长度
 
@@ -216,5 +218,97 @@ struct BiDirDijkstra {
         return estimate;
     }
 };
+
+TEST_CASE("BiDijkstraTest1") {
+    BiDirDijkstra<int> d(8);
+    d.add_edge(0, 1, 2);
+    d.add_edge(0, 2, 6);
+    d.add_edge(1, 3, 5);
+    d.add_edge(2, 3, 8);
+    d.add_edge(3, 4, 10);
+    d.add_edge(3, 5, 15);
+    d.add_edge(4, 5, 3);
+    d.add_edge(4, 6, 2);
+    d.add_edge(5, 6, 6);
+
+    SUBCASE("起点终点之间有边") {
+        auto ans = d.shortest_path(0, 5);
+        CHECK(ans.first == 20);
+    }
+    SUBCASE("起点终点之间没有边") {
+        auto ans = d.shortest_path(0, 7);
+        CHECK(ans.first == -1);
+    }
+    SUBCASE("起点终点越界") {
+        auto ans = d.shortest_path(0, 9);
+        CHECK(ans.first == -1);
+    }
+    SUBCASE("起点终点相同") {
+        auto ans = d.shortest_path(0, 0);
+        CHECK(ans.first == 0);
+    }
+    SUBCASE("所有结果") {
+        std::vector<std::pair<int, std::vector<std::pair<int, int>>>> except_paths = {
+            {0, {{0, 0}}},
+            {2, {{0, 0}, {2, 1}}},
+            {6, {{0, 0}, {6, 2}}},
+            {7, {{0, 0}, {2, 1}, {5, 3}}},
+            {17, {{0, 0}, {2, 1}, {5, 3}, {10, 4}}},
+            {20, {{0, 0}, {2, 1}, {5, 3}, {10, 4}, {3, 5}}},
+            {19, {{0, 0}, {2, 1}, {5, 3}, {10, 4}, {2, 6}}},
+            {-1, {}},
+        };
+
+        auto short_paths = d.dijkstra(0);
+        CHECK(short_paths == except_paths);
+    }
+}
+
+TEST_CASE("DijkstraTest2") {
+    BiDirDijkstra<int> d(9);
+    d.add_edge(0, 1, 1);
+    d.add_edge(0, 5, 4);
+    d.add_edge(0, 4, 8);
+    d.add_edge(1, 2, 1);
+    d.add_edge(2, 3, 1);
+    d.add_edge(3, 7, 1);
+    d.add_edge(7, 8, 2);
+    d.add_edge(5, 8, 1);
+    d.add_edge(4, 6, 2);
+    d.add_edge(6, 8, 6);
+
+    SUBCASE("Test 所有路径") {
+        std::vector<std::pair<int, std::vector<std::pair<int, int>>>> except_paths = {
+            {0, {{0, 0}}},
+            {1, {{0, 0}, {1, 1}}},
+            {2, {{0, 0}, {1, 1}, {1, 2}}},
+            {3, {{0, 0}, {1, 1}, {1, 2}, {1, 3}}},
+            {8, {{0, 0}, {8, 4}}},
+            {4, {{0, 0}, {4, 5}}},
+            {10, {{0, 0}, {8, 4}, {2, 6}}},
+            {4, {{0, 0}, {1, 1}, {1, 2}, {1, 3}, {1, 7}}},
+            {5, {{0, 0}, {4, 5}, {1, 8}}},
+        };
+
+        auto short_paths = d.dijkstra(0);
+        CHECK(short_paths == except_paths);
+    }
+}
+
+TEST_CASE("DijkstraTest3") {
+    BiDirDijkstra<int> d(9);
+    d.add_edge(0, 1, 1);
+    d.add_edge(0, 5, 4);
+    d.add_edge(0, 4, 8);
+    d.add_edge(1, 2, 1);
+    d.add_edge(2, 3, 1);
+    d.add_edge(3, 7, 1);
+    d.add_edge(7, 8, 2);
+    d.add_edge(5, 8, 1);
+    d.add_edge(4, 6, 2);
+    d.add_edge(6, 8, 6);
+
+    ankerl::nanobench::Bench().run("BiDijkstra", [&] { d.shortest_dist(0, 8); });
+}
 
 #endif
